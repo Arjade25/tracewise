@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.egg-info/
+.demo/
+data/
+*.rdb
+.env
+.coverage
+.pytest_cache/
+.tvenv/
+.vscode/
+.idea/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

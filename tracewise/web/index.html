@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracewise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="5" cy="6" r="2.4"/><circle cx="19" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M5 6 L12 18 L19 6" fill="none" stroke-width="1.6"/></svg>
+    <span>Tracewise</span>
+  </div>
+  <nav>
+    <button class="tab active" data-tab="ask" title="Track 01 · Agents That Act on Connected Data: multi-hop graph queries and algorithms as agent tools, with the path behind every answer.&#10;Track 03 · Company Brain: who owns and knows what, and decisions traced back to their PRs, issues and release notes.">Ask <span class="trk">T1 · T3</span></button>
+    <button class="tab" data-tab="review" title="Track 02 · Agent Memory and Coordination: a coordinator, three analysts and a reviewer share state and hand off work through the memory graph, with concurrent, atomic task claims.">Crew review <span class="trk">T2</span></button>
+    <button class="tab" data-tab="memory" title="Track 02 · Agent Memory and Coordination: per-user memory graph with facts that update over time (superseded, not overwritten), learned procedures and conversation history.">Memory <span class="trk">T2</span></button>
+  </nav>
+  <div class="meta">
+    <label class="field">repo <select id="repo" aria-label="Repository"></select></label>
+    <button id="add-repo" class="icon-btn" type="button" title="Add a repository" aria-label="Add a repository">+</button>
+    <button id="del-repo" class="icon-btn" type="button" title="Remove this repository" aria-label="Remove this repository">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg>
+    </button>
+    <label class="field">user <select id="user-select" aria-label="User"></select></label>
+    <button id="mode" class="pill" type="button" title="LLM settings">…</button>
+    <button id="open-settings" class="icon-btn" type="button" title="LLM settings: add your own API key" aria-label="LLM settings">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .3.2.5.5.5h4c.3 0 .5-.2.5-.4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section id="tab-ask" class="pane active">
+    <div class="left">
+      <div class="chatbar">
+        <div id="stats" class="stats"></div>
+        <div class="chat-actions">
+          <button id="new-chat" class="ghost" type="button" title="Start a new conversation">＋ New chat</button>
+          <button id="clear-chat" class="ghost" type="button" title="Delete this conversation's messages and start over">Clear</button>
+          <button id="history-btn" class="ghost" type="button" title="Past conversations">History</button>
+        </div>
+      </div>
+      <aside id="history" class="history" hidden aria-label="Conversation history">
+        <div class="history-head">
+          <b>Conversations</b>
+          <select id="history-scope" aria-label="Which conversations"><option value="repo">This repo</option><option value="all">All repos</option></select>
+          <button id="history-close" class="x" type="button" aria-label="Close history">×</button>
+        </div>
+        <ul id="history-list"></ul>
+      </aside>
+      <div id="thread" class="thread">
+        <div class="intro">
+          <h1>Ask the codebase.</h1>
+          <p>Every answer is a walk through a FalkorDB graph of code, commits, PRs, people and release notes. The path is drawn on the right, and the Cypher is one click away.</p>
+          <div id="examples" class="examples"></div>
+          <p class="track-key">Tags show which Graph Hacks track an example demonstrates: <b>T1</b> Agents That Act on Connected Data · <b>T2</b> Agent Memory and Coordination · <b>T3</b> Company Brain.</p>
+        </div>
+      </div>
+      <form id="ask" class="composer">
+        <textarea id="q" rows="2" placeholder="What breaks if I change full_dispatch_request?" required></textarea>
+        <button type="submit">Ask</button>
+      </form>
+    </div>
+    <div class="right">
+      <div class="graph-head"><span>Evidence graph</span><div id="legend" class="legend"></div></div>
+      <div id="graph" class="graph"></div>
+      <details id="cypher" class="cypher"><summary>Cypher <span id="qcount"></span></summary><div id="cypher-body"></div></details>
+    </div>
+  </section>
+
+  <section id="tab-review" class="pane">
+    <div class="left">
+      <h2>Review a change with an agent crew</h2>
+      <p class="muted">A coordinator splits the change into tasks in the memory graph. An impact analyst, a test analyst and a history analyst claim them concurrently, write their findings back as facts, and hand off to a reviewer that reads only from the graph.</p>
+      <label>Changed functions <input id="rsyms" value="url_for, Flask.make_response, full_dispatch_request"></label>
+      <label>…or a unified diff <textarea id="rdiff" rows="7" placeholder="paste `git diff` output"></textarea></label>
+      <button id="rgo">Run crew</button>
+      <div id="rout" class="answer"></div>
+    </div>
+    <div class="right">
+      <div class="graph-head"><span>Coordination timeline</span></div>
+      <div id="timeline" class="timeline"></div>
+    </div>
+  </section>
+
+  <section id="tab-memory" class="pane">
+    <div class="left">
+      <h2>What the agent remembers about <span id="muser"></span></h2>
+      <div id="mstats" class="stats"></div>
+      <h3>Facts <span class="muted">(newest first; superseded facts are struck through)</span></h3>
+      <div id="mfacts" class="facts"></div>
+      <h3>Learned procedures</h3>
+      <div id="mprocs" class="facts"></div>
+    </div>
+    <div class="right">
+      <div class="graph-head"><span>Memory graph</span><button id="mref" class="ghost">Refresh</button></div>
+      <div id="mgraph" class="graph"></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings" aria-labelledby="settings-title">
+  <div class="dlg">
+    <header class="dlg-head"><h2 id="settings-title">LLM settings</h2><button type="button" class="x" data-close aria-label="Close">×</button></header>
+    <p class="muted">Optional. Without a key, Tracewise answers straight from the graph. With a key, an LLM chooses which graph tools to call and writes the answer.</p>
+    <p class="note">🔒 Your key is stored only in <b>this browser</b> and sent only with your own questions. The server never saves or logs it.</p>
+    <label>Provider <select id="llm-provider"></select></label>
+    <label>API key
+      <span class="with-btn"><input id="llm-key" class="masked" type="text" name="tw-llm-token" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" aria-label="API key"><button type="button" id="llm-show" class="ghost">show</button></span>
+    </label>
+    <label>Model <input id="llm-model" list="llm-models" spellcheck="false" autocomplete="off"><datalist id="llm-models"></datalist></label>
+    <label id="llm-base-row" hidden>Base URL <input id="llm-base" placeholder="https://…/v1" spellcheck="false" autocomplete="off"></label>
+    <p id="llm-server" class="muted small"></p>
+    <p id="llm-msg" class="msg" role="status"></p>
+    <footer class="dlg-foot">
+      <button type="button" id="llm-remove" class="ghost danger" hidden>Remove my key</button>
+      <span class="grow"></span>
+      <button type="button" id="llm-test" class="ghost">Test</button>
+      <button type="button" id="llm-save" class="primary">Save</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="addrepo" aria-labelledby="addrepo-title">
+  <div class="dlg">
+    <header class="dlg-head"><h2 id="addrepo-title">Add a repository</h2><button type="button" class="x" data-close aria-label="Close">×</button></header>
+    <p class="muted">Paste a public git URL. Tracewise clones it and builds its graph: code and calls, commits, PRs, people and the changelog. Python repos get the full code graph; any repo gets history and people.</p>
+    <label>Repository URL <input id="repo-url" placeholder="https://github.com/pallets/click" spellcheck="false" autocomplete="off"></label>
+    <div class="examples small-ex">Try:
+      <button type="button" data-example-repo="https://github.com/pallets/click">pallets/click</button>
+      <button type="button" data-example-repo="https://github.com/pallets/itsdangerous">pallets/itsdangerous</button>
+      <button type="button" data-example-repo="https://github.com/psf/requests">psf/requests</button>
+    </div>
+    <label>Name in Tracewise <input id="repo-name" placeholder="click" maxlength="40" spellcheck="false" autocomplete="off"></label>
+    <label>Version <span class="muted small">(optional: a tag, branch or commit; empty = latest)</span> <input id="repo-rev" placeholder="latest" maxlength="100" spellcheck="false" autocomplete="off"></label>
+    <p id="repo-exists" class="muted small" hidden></p>
+    <div id="repo-progress" hidden>
+      <div id="repo-steps" class="steps"></div>
+      <pre id="repo-log" class="log"></pre>
+    </div>
+    <p id="repo-msg" class="msg" role="status"></p>
+    <p class="muted small">Measured test coverage isn't run for repositories added here, because it needs the project's own dependencies. Test answers use static call paths instead.</p>
+    <footer class="dlg-foot">
+      <span class="grow"></span>
+      <button type="button" id="repo-open" class="ghost" hidden>Open it</button>
+      <button type="button" id="repo-go" class="primary">Index repository</button>
+    </footer>
+  </div>
+</dialog>
+<dialog id="newuser" class="confirm" aria-labelledby="newuser-title">
+  <div class="dlg">
+    <header class="dlg-head"><h2 id="newuser-title">New user</h2><button type="button" class="x" data-close aria-label="Close">×</button></header>
+    <p class="muted">Each user gets their own memory graph: their conversations, facts and learned procedures.</p>
+    <label>Name <input id="newuser-name" type="text" name="tw-new-handle" maxlength="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="for example aryan"></label>
+    <p id="newuser-msg" class="msg" role="status"></p>
+    <footer class="dlg-foot">
+      <span class="grow"></span>
+      <button type="button" id="newuser-cancel" class="ghost">Cancel</button>
+      <button type="button" id="newuser-ok" class="primary">Switch to this user</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="confirm" class="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+  <div class="dlg">
+    <header class="dlg-head"><h2 id="confirm-title">Are you sure?</h2><button type="button" class="x" data-close aria-label="Close">×</button></header>
+    <p id="confirm-msg" class="muted"></p>
+    <footer class="dlg-foot">
+      <span class="grow"></span>
+      <button type="button" id="confirm-cancel" class="ghost">Cancel</button>
+      <button type="button" id="confirm-ok" class="primary">OK</button>
+    </footer>
+  </div>
+</dialog>
+<script src="/static/app.js"></script>
+</body>
+</html>

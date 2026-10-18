@@ -1,0 +1,12 @@
+# Development override: run Tracewise from your local source with auto-reload.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Edit any file under tracewise/ (Python, HTML, CSS, JS) and just refresh the browser:
+# no rebuild needed (the server polls for Python changes and restarts; HTML/CSS/JS are served
+# straight from disk). Rebuild only after changing pyproject.toml or the Dockerfile.
+services:
+  tracewise:
+    volumes:
+      - ./tracewise:/app/tracewise
+    environment:
+      PYTHONPATH: /app            # import the mounted source, not the copy installed in the image
+    command: ["sh", "-c", "tracewise repos >/dev/null 2>&1 || sleep 3; exec tracewise serve --host 0.0.0.0 --port 8000 --reload"]

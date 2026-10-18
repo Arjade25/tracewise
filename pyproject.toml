@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tracewise"
+version = "0.1.0"
+description = "A graph-native engineering agent: code, history, people and decisions in FalkorDB."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "falkordb>=1.8",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "mcp>=1.9,<2",
+  "coverage>=7.4",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.40", "openai>=1.40"]
+lite = ["falkordblite>=0.10"]   # embedded FalkorDB server binary, no Docker needed
+dev = ["pytest>=8"]
+
+[project.scripts]
+tracewise = "tracewise.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["tracewise*"]
+
+[tool.setuptools.package-data]
+tracewise = ["web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,20 @@
+# One-click deploy on Render (Docker runtime). The image bundles FalkorDB and the
+# prebuilt Flask graph, so a single web service is enough. LLM keys are optional:
+# without them the agent answers in offline mode.
+services:
+  - type: web
+    name: tracewise
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: EMBEDDED_DB
+        value: "1"
+      - key: TRACEWISE_API_KEY
+        sync: false
+      - key: TRACEWISE_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: TRACEWISE_MODEL
+        value: openai/gpt-4.1-mini
+      - key: ANTHROPIC_API_KEY
+        sync: false
