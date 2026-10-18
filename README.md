@@ -174,13 +174,13 @@ flowchart LR
 
 ```mermaid
 erDiagram
-  Module ||--o{ Class : DEFINES
+  Module ||--o{ "Class" : DEFINES
   Module ||--o{ Function : DEFINES
   Module }o--o{ Module : IMPORTS
-  Class ||--o{ Function : HAS_METHOD
-  Class }o--o{ Class : INHERITS
+  "Class" ||--o{ Function : HAS_METHOD
+  "Class" }o--o{ "Class" : INHERITS
   Function }o--o{ Function : CALLS
-  Function }o--o{ Class : INSTANTIATES
+  Function }o--o{ "Class" : INSTANTIATES
   Function }o--o{ Function : COVERS
   Person ||--o{ Commit : AUTHORED
   Person }o--o{ Function : WROTE
